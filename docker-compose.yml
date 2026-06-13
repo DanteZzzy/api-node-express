@@ -26,6 +26,22 @@ services:
     networks:
       - api_net
 
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: api_test
+    env_file:
+      - .env
+    environment:
+      MONGO_URI_TEST: mongodb://mongo:27017/api_test
+    depends_on:
+      - mongo
+    networks:
+      - api_net
+    profiles:
+      - test
+
 volumes:
   mongo_data:
   sqlite_data:

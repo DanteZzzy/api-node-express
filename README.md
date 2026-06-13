@@ -351,9 +351,21 @@ Resposta esperada: `401 Unauthorized` — confirma que a rota está protegida co
 
 ## 8. Testes Automatizados (Jest + Supertest)
 
-Os testes de integração cobrem **todos os endpoints** da aplicação: autenticação, CRUD de usuários, carros, motos e marcas de roupa, incluindo casos de sucesso, erro e proteção de rotas.
+Os testes de integração cobrem todos os endpoints da aplicação: autenticação,
+CRUD de usuários, carros, motos e marcas de roupa, incluindo casos de sucesso,
+erro e proteção de rotas.
 
-Para rodar localmente (fora do Docker), é necessário ter Node.js e um MongoDB rodando na porta padrão:
+### Rodando via Docker (recomendado)
+
+Com o MongoDB já em execução (`docker compose up`), em outro terminal:
+
+```bash
+docker compose run --rm test
+```
+
+### Rodando localmente (sem Docker)
+
+Requer Node.js e um MongoDB rodando em `localhost:27017`:
 
 ```bash
 npm install
