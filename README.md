@@ -1,14 +1,16 @@
 # API Node.js — Carros, Motos, Marcas de Roupa & Usuários
 
-API RESTful desenvolvida com **Node.js** e **Express**, seguindo o padrão arquitetural em camadas (Layered Architecture: rotas → controllers → models), com persistência híbrida, autenticação JWT, proteção baseada na OWASP Top 10, testes de integração automatizados e conteinerização completa via Docker.
+API RESTful desenvolvida com **Node.js** e **Express**, seguindo o padrão arquitetural em camadas (Layered Architecture: rotas → controllers → services → repositories → models), com persistência híbrida, autenticação JWT, proteção baseada na OWASP Top 10, testes de integração automatizados e conteinerização completa via Docker.
 
 ---
 
 ## 1. Documentação Escrita — Arquitetura, Tecnologias e Decisões
 
-Esta aplicação foi desenvolvida sob o ecossistema Node.js utilizando o framework Express e o padrão arquitetural em camadas (Layered Architecture), separando rotas, controllers, models e middlewares para garantir manutenibilidade e clareza de responsabilidades.
+Esta aplicação foi desenvolvida sob o ecossistema Node.js utilizando o framework Express e o padrão arquitetural em camadas (Layered Architecture), separando rotas, controllers, services, repositories, models e middlewares para garantir manutenibilidade e clareza de responsabilidades.
 
 O diferencial técnico do projeto é o modelo de **Persistência Híbrida**: os dados de controle de acesso (usuários e credenciais) são armazenados em um banco relacional **SQLite**, gerenciado via ORM **Sequelize**, garantindo integridade e constraints (e-mail único, tipos de dados rígidos). Já os catálogos operacionais — carros, motos e marcas de roupa — utilizam a flexibilidade de esquemas do banco NoSQL **MongoDB**, mapeados através do ODM **Mongoose**.
+
+Para os recursos NoSQL (carros, motos e marcas de roupa), a arquitetura conta ainda com as camadas de **Repository** e **Service**: o `baseRepository.js` encapsula o acesso direto ao Mongoose (create, find, update, delete), enquanto o `baseService.js` concentra regras de negócio reutilizáveis — como impedir o cadastro de um veículo ou marca com ano de fabricação/fundação no futuro. Um único `BaseService` configurável (via parâmetros `yearField`, `maxYearOffset` e `entityName`) é reaproveitado pelos três recursos, evitando duplicação de código.
 
 A segurança foi modelada com base na **OWASP Top 10 (2021)**. Para mitigar falhas de autenticação (A07), implementou-se controle de sessão *stateless* via **JWT**, com senhas protegidas por **bcrypt** (fator de custo 12). A proteção contra quebra de controle de acesso (A01) ocorre por meio de middlewares que validam token e papel do usuário (`user`/`admin`). Para mitigar falhas criptográficas (A02), nenhuma senha é armazenada em texto puro. Contra configurações inseguras (A05), a biblioteca **Helmet** sanitiza cabeçalhos HTTP, e o **express-rate-limit** mitiga ataques de força bruta e DoS (A04). Os logs de requisições são registrados via **morgan** (A09), apoiando auditoria e monitoramento.
 
@@ -206,6 +208,8 @@ Isso vai:
 
 *(mesma estrutura para `/motos` e `/marcas-roupa`)*
 
+> **Regra de negócio (camada Service):** o campo de ano (`ano` para carros/motos, `ano_fundacao` para marcas de roupa) não pode ser maior que o ano atual (+1 para carros/motos). Criar ou atualizar um registro com ano inválido retorna `400 Bad Request`.
+
 ---
 
 ## 7. Como Testar a API
@@ -347,13 +351,31 @@ Faça uma requisição **sem** o cabeçalho de Authorization:
 
 Resposta esperada: `401 Unauthorized` — confirma que a rota está protegida corretamente.
 
+#### Passo 12 — Testar a regra de negócio do Service (ano inválido)
+
+- Método: `POST`
+- URL: `http://localhost:3000/carros`
+- Aba **Auth:** Bearer Token
+- Aba **Body** → JSON:
+```json
+{
+  "marca": "Toyota",
+  "modelo": "Corolla",
+  "ano": 2099,
+  "cor": "Prata",
+  "preco": 120000
+}
+```
+
+Resposta esperada: `400 Bad Request`, confirmando que a camada de Service validou a regra de negócio antes de chamar o Repository.
+
 ---
 
 ## 8. Testes Automatizados (Jest + Supertest)
 
 Os testes de integração cobrem todos os endpoints da aplicação: autenticação,
 CRUD de usuários, carros, motos e marcas de roupa, incluindo casos de sucesso,
-erro e proteção de rotas.
+erro, validação e proteção de rotas (32 testes no total).
 
 ### Rodando via Docker (recomendado)
 
@@ -381,7 +403,7 @@ npm test
 | A01 — Broken Access Control | ✅ Aplicado | Middleware `autenticar` + `autorizar` com roles `user`/`admin` |
 | A02 — Cryptographic Failures | ✅ Aplicado | Senhas com bcrypt (fator de custo 12), nunca em texto puro |
 | A03 — Injection | ✅ Aplicado | Uso de ORMs (Sequelize/Mongoose), que parametrizam consultas automaticamente |
-| A04 — Insecure Design | ✅ Aplicado | Rate limiting (100 req / 15 min por IP) |
+| A04 — Insecure Design | ✅ Aplicado | Rate limiting (100 req / 15 min por IP) + validação de regras de negócio na camada de Service |
 | A05 — Security Misconfiguration | ✅ Aplicado | Helmet configurando headers HTTP seguros |
 | A06 — Vulnerable Components | ⚠️ Parcial | Dependências mantidas em versões recentes via `package.json` |
 | A07 — Identification and Authentication Failures | ✅ Aplicado | JWT com expiração configurável + mensagens de erro genéricas no login |
