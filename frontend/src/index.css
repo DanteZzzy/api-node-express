@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50:  oklch(97% 0.02 264);
+  --color-brand-100: oklch(93% 0.04 264);
+  --color-brand-500: oklch(58% 0.18 264);
+  --color-brand-600: oklch(50% 0.19 264);
+  --color-brand-700: oklch(42% 0.18 264);
+  --color-brand-900: oklch(25% 0.12 264);
+
+  --color-success: oklch(60% 0.15 145);
+  --color-danger:  oklch(58% 0.22 25);
+  --color-warning: oklch(75% 0.16 80);
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --shadow-card: 0 2px 8px oklch(0% 0 0 / 8%);
+}
+
+body {
+  font-family: var(--font-sans);
+}

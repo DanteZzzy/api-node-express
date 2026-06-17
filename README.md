@@ -1,6 +1,6 @@
 # API Node.js — Carros, Motos, Marcas de Roupa & Usuários
 
-API RESTful desenvolvida com **Node.js** e **Express**, seguindo o padrão arquitetural em camadas (Layered Architecture: rotas → controllers → services → repositories → models), com persistência híbrida, autenticação JWT, proteção baseada na OWASP Top 10, testes de integração automatizados e conteinerização completa via Docker.
+API RESTful desenvolvida com **Node.js** e **Express**, seguindo o padrão arquitetural em camadas (Layered Architecture: rotas → controllers → services → repositories → models), com persistência híbrida, autenticação JWT, proteção baseada na OWASP Top 10, testes de integração automatizados, frontend em React e conteinerização completa via Docker.
 
 ---
 
@@ -14,9 +14,11 @@ Para os recursos NoSQL (carros, motos e marcas de roupa), a arquitetura conta ai
 
 A segurança foi modelada com base na **OWASP Top 10 (2021)**. Para mitigar falhas de autenticação (A07), implementou-se controle de sessão *stateless* via **JWT**, com senhas protegidas por **bcrypt** (fator de custo 12). A proteção contra quebra de controle de acesso (A01) ocorre por meio de middlewares que validam token e papel do usuário (`user`/`admin`). Para mitigar falhas criptográficas (A02), nenhuma senha é armazenada em texto puro. Contra configurações inseguras (A05), a biblioteca **Helmet** sanitiza cabeçalhos HTTP, e o **express-rate-limit** mitiga ataques de força bruta e DoS (A04). Os logs de requisições são registrados via **morgan** (A09), apoiando auditoria e monitoramento.
 
-A resiliência da aplicação é validada por **testes de integração automatizados** com **Jest** e **Supertest**, cobrindo autenticação, autorização e todos os CRUDs (carros, motos, marcas de roupa e usuários), com bancos de dados isolados para testes.
+A resiliência da aplicação é validada por **testes de integração automatizados** com **Jest** e **Supertest**, cobrindo autenticação, autorização e todos os CRUDs (carros, motos, marcas de roupa e usuários), com bancos de dados isolados para testes. Os testes podem ser executados tanto localmente quanto em um container Docker dedicado, sem necessidade de instalar Node.js ou MongoDB na máquina host.
 
-Toda a infraestrutura foi conteinerizada com **Docker** e **Docker Compose**, orquestrando a API e o MongoDB em containers separados, com variáveis de ambiente centralizadas em `.env`, permitindo que a aplicação seja executada em qualquer ambiente sem dependências instaladas na máquina host — exceto Docker.
+O frontend foi desenvolvido com **React 18** e **Vite**, estilizado com **Tailwind CSS v4**, e servido em produção pelo **Nginx**. A interface permite login, registro, navegação entre recursos, operações completas de CRUD e controle de acesso baseado no papel do usuário (admin/user), com mensagens de sucesso e erro em tempo real.
+
+Toda a infraestrutura foi conteinerizada com **Docker** e **Docker Compose**, orquestrando o MongoDB, a API e o frontend em containers separados, com variáveis de ambiente centralizadas em `.env`, permitindo que a aplicação completa seja executada com um único comando — sem dependências instaladas na máquina host além do Docker.
 
 A documentação da API é gerada automaticamente via **Swagger** (OpenAPI 3.0), acessível em `/docs`, descrevendo todos os endpoints, parâmetros, corpos de requisição e respostas esperadas.
 
@@ -24,19 +26,22 @@ A documentação da API é gerada automaticamente via **Swagger** (OpenAPI 3.0),
 
 ## 2. Tecnologias Utilizadas
 
-| Categoria            | Tecnologia                                   |
-|-----------------------|----------------------------------------------|
-| Runtime               | Node.js 20                                    |
-| Framework Web         | Express 4                                     |
-| Banco NoSQL           | MongoDB 7 + Mongoose                          |
-| Banco SQL             | SQLite + Sequelize                            |
-| Autenticação          | JWT (jsonwebtoken) + bcryptjs                 |
-| Validação             | express-validator                             |
-| Segurança HTTP        | Helmet, CORS, express-rate-limit              |
-| Logging               | morgan                                         |
-| Documentação          | Swagger (swagger-jsdoc + swagger-ui-express)  |
-| Testes                | Jest + Supertest                              |
-| Conteinerização       | Docker + Docker Compose                       |
+| Categoria             | Tecnologia                                    |
+|------------------------|-----------------------------------------------|
+| Runtime                | Node.js 20                                    |
+| Framework Web          | Express 4                                     |
+| Banco NoSQL            | MongoDB 7 + Mongoose                          |
+| Banco SQL              | SQLite + Sequelize                            |
+| Autenticação           | JWT (jsonwebtoken) + bcryptjs                 |
+| Validação              | express-validator                             |
+| Segurança HTTP         | Helmet, CORS, express-rate-limit              |
+| Logging                | morgan                                        |
+| Documentação           | Swagger (swagger-jsdoc + swagger-ui-express)  |
+| Testes                 | Jest + Supertest                              |
+| Frontend               | React 18 + Vite                               |
+| Estilização            | Tailwind CSS v4                               |
+| Servidor Web           | Nginx (Alpine)                                |
+| Conteinerização        | Docker + Docker Compose                       |
 
 ---
 
@@ -44,81 +49,56 @@ A documentação da API é gerada automaticamente via **Swagger** (OpenAPI 3.0),
 
 ```bash
 ├── src/
-
 │   ├── config/
-
-│   │   ├── database.js       → Conexão MongoDB e SQLite
-
-│   │   └── swagger.js        → Configuração do Swagger
-
+│   │   ├── database.js        → Conexão MongoDB e SQLite
+│   │   └── swagger.js         → Configuração do Swagger
 │   ├── controllers/
-
 │   │   ├── authController.js     → Registro e login
-
-│   │   ├── nosqlController.js    → Factory de CRUD para Mongoose
-
+│   │   ├── nosqlController.js    → Factory de CRUD (delega ao Service)
 │   │   └── usuarioController.js  → CRUD de usuários (SQL)
-
 │   ├── middlewares/
-
-│   │   ├── auth.js           → Autenticação e autorização JWT
-
-│   │   └── validar.js        → Validação de campos
-
+│   │   ├── auth.js            → Autenticação e autorização JWT
+│   │   └── validar.js         → Validação de campos
 │   ├── models/
-
-│   │   ├── nosqlModels.js     → Carro, Moto, MarcaRoupa (Mongoose)
-
-│   │   └── Usuario.js         → Usuario (Sequelize)
-
+│   │   ├── nosqlModels.js      → Carro, Moto, MarcaRoupa (Mongoose)
+│   │   └── Usuario.js          → Usuario (Sequelize)
 │   ├── repositories/
-
 │   │   └── baseRepository.js   → Acesso a dados (Mongoose)
-
 │   ├── services/
-
-│   │   └── baseService.js      → Regras de negócio genéricas
-
+│   │   └── baseService.js      → Regras de negócio configuráveis (validação de ano)
 │   ├── utils/
-
 │   │   └── errors.js           → Erros customizados (404/400)
-
 │   ├── routes/
-
 │   │   ├── authRoutes.js
-
 │   │   ├── usuarioRoutes.js
-
 │   │   ├── carroRoutes.js
-
 │   │   ├── motoRoutes.js
-
 │   │   └── marcaRoupaRoutes.js
-
-│   ├── app.js                 → Configuração do Express e middlewares globais
-
-│   └── server.js              → Inicialização dos bancos e do servidor
-
+│   ├── app.js                  → Configuração do Express e middlewares globais
+│   └── server.js               → Inicialização dos bancos e do servidor
 ├── tests/
-
-│   ├── setup.js               → Configuração do ambiente de teste
-
-│   ├── auth.test.js           → Testes de Auth e Usuários
-
-│   └── nosql.test.js          → Testes de Carros, Motos e Marcas de Roupa
-
-├── .env                        → Variáveis de ambiente (uso local/Docker)
-
-├── .env.example                → Modelo de variáveis de ambiente
-
+│   ├── setup.js                → Configuração do ambiente de teste
+│   ├── auth.test.js            → Testes de Auth e Usuários
+│   └── nosql.test.js           → Testes de Carros, Motos e Marcas de Roupa
+├── frontend/
+│   ├── src/
+│   │   ├── components/    → Button, Input, Modal, Navbar, Layout, etc.
+│   │   ├── context/       → AuthContext, ToastContext
+│   │   ├── pages/         → Login, Registro, Home, Carros, Motos, MarcasRoupa, Usuarios
+│   │   ├── routes/        → ProtectedRoute
+│   │   ├── services/      → api.js, authService, nosqlService, usuarioService, useCrud
+│   │   ├── App.jsx        → Roteamento principal
+│   │   └── main.jsx       → Ponto de entrada
+│   ├── Dockerfile         → Build com Vite + Nginx
+│   ├── nginx.conf         → Configuração do servidor web
+│   └── .env.example       → Modelo de variáveis do frontend
+├── .env                         → Variáveis de ambiente (uso local/Docker)
+├── .env.example                 → Modelo de variáveis de ambiente
 ├── .gitignore
-
-├── Dockerfile
-
+├── Dockerfile                   → Build da aplicação (produção)
+├── Dockerfile.test              → Build da imagem usada para rodar os testes
 ├── docker-compose.yml
-
 ├── package.json
-
 └── README.md
 ```
 
@@ -138,31 +118,37 @@ cd api-node-express
 
 ### Passo 2 — Configurar variáveis de ambiente
 
-O arquivo `.env.example` traz um modelo de configuração. Copie-o para `.env`:
-
 ```bash
 cp .env.example .env
 ```
 
 Em produção, troque o valor de `JWT_SECRET` por uma chave forte e aleatória.
 
-### Passo 3 — Subir os containers
+### Passo 3 — Subir todos os containers
 
 ```bash
 docker compose up --build
 ```
 
-Isso vai:
-- Construir a imagem da API (Node.js 20)
-- Subir o container do MongoDB
-- Subir o container da API, conectado ao MongoDB e ao SQLite
+Isso sobe três containers de uma vez:
+- **mongo** — banco de dados MongoDB
+- **api** — backend Node.js na porta 3000
+- **frontend** — React servido pelo Nginx na porta 80
 
 ### Passo 4 — Acessar a aplicação
 
 | Recurso | URL |
 |---|---|
+| Frontend | http://localhost |
 | API | http://localhost:3000 |
 | Documentação Swagger | http://localhost:3000/docs |
+
+### Passo 5 — Primeiros passos na interface
+
+1. Acesse `http://localhost`
+2. Clique em **Cadastre-se** para criar uma conta (escolha o perfil **Administrador** para ter acesso completo)
+3. Faça login com as credenciais cadastradas
+4. Use o menu de navegação para acessar Carros, Motos, Marcas de Roupa e Usuários
 
 ---
 
@@ -175,6 +161,7 @@ Isso vai:
 | `JWT_EXPIRES_IN` | Tempo de expiração do token | `1h` |
 | `MONGO_URI` | URI de conexão do MongoDB | `mongodb://mongo:27017/api_nosql` |
 | `SQL_STORAGE` | Caminho do arquivo SQLite | `/data/database.sqlite` |
+| `VITE_API_URL` | URL da API consumida pelo frontend | `http://localhost:3000` |
 
 ---
 
@@ -261,11 +248,13 @@ Em qualquer requisição protegida:
 2. **Auth Type:** `Bearer Token`
 3. Cole o token copiado no Passo 2
 
+> Se o token expirar (padrão: 1h), a API retorna `{ "erro": "Token inválido ou expirado." }`. Basta repetir o Passo 2 para obter um novo token.
+
 #### Passo 4 — Criar um carro
 
 - Método: `POST`
 - URL: `http://localhost:3000/carros`
-- Aba **Auth:** Bearer Token (token do Passo 2)
+- Aba **Auth:** Bearer Token
 - Aba **Body** → JSON:
 ```json
 {
@@ -288,7 +277,7 @@ Em qualquer requisição protegida:
 #### Passo 6 — Buscar carro por ID
 
 - Método: `GET`
-- URL: `http://localhost:3000/carros/{id}` (substitua `{id}` pelo `_id` copiado)
+- URL: `http://localhost:3000/carros/{id}`
 - Aba **Auth:** Bearer Token
 
 #### Passo 7 — Atualizar carro
@@ -310,8 +299,6 @@ Em qualquer requisição protegida:
 - Resposta esperada: `204 No Content`
 
 #### Passo 9 — Repita para Motos e Marcas de Roupa
-
-Mesmos passos, trocando a URL e o corpo:
 
 **Moto** — URL base: `/motos`
 ```json
@@ -343,13 +330,11 @@ Mesmos passos, trocando a URL e o corpo:
 
 #### Passo 11 — Testar a proteção de rotas (OWASP)
 
-Faça uma requisição **sem** o cabeçalho de Authorization:
-
 - Método: `GET`
 - URL: `http://localhost:3000/carros`
 - **Não** preencher a aba Auth
 
-Resposta esperada: `401 Unauthorized` — confirma que a rota está protegida corretamente.
+Resposta esperada: `401 Unauthorized`
 
 #### Passo 12 — Testar a regra de negócio do Service (ano inválido)
 
@@ -366,28 +351,33 @@ Resposta esperada: `401 Unauthorized` — confirma que a rota está protegida co
   "preco": 120000
 }
 ```
-
-Resposta esperada: `400 Bad Request`, confirmando que a camada de Service validou a regra de negócio antes de chamar o Repository.
+Resposta esperada: `400 Bad Request`
 
 ---
 
 ## 8. Testes Automatizados (Jest + Supertest)
 
-Os testes de integração cobrem todos os endpoints da aplicação: autenticação,
-CRUD de usuários, carros, motos e marcas de roupa, incluindo casos de sucesso,
-erro, validação e proteção de rotas (32 testes no total).
+Os testes de integração cobrem todos os endpoints da aplicação: autenticação, CRUD de usuários, carros, motos e marcas de roupa, incluindo casos de sucesso, erro, validação e proteção de rotas (32 testes no total).
 
 ### Rodando via Docker (recomendado)
 
-Com o MongoDB já em execução (`docker compose up`), em outro terminal:
+Com o MongoDB já em execução:
 
 ```bash
+docker compose up -d mongo
 docker compose run --rm test
+```
+
+Saída esperada:
+```bash
+Test Suites: 2 passed, 2 total
+
+Tests:       32 passed, 32 total
 ```
 
 ### Rodando localmente (sem Docker)
 
-Requer Node.js e um MongoDB rodando em `localhost:27017`:
+Requer Node.js e MongoDB rodando em `localhost:27017`:
 
 ```bash
 npm install
@@ -405,11 +395,18 @@ npm test
 | A03 — Injection | ✅ Aplicado | Uso de ORMs (Sequelize/Mongoose), que parametrizam consultas automaticamente |
 | A04 — Insecure Design | ✅ Aplicado | Rate limiting (100 req / 15 min por IP) + validação de regras de negócio na camada de Service |
 | A05 — Security Misconfiguration | ✅ Aplicado | Helmet configurando headers HTTP seguros |
-| A06 — Vulnerable Components | ⚠️ Parcial | Dependências mantidas em versões recentes via `package.json` |
+| A06 — Vulnerable Components | ⚠️ Parcial | Auditoria via `npm audit`; vulnerabilidades remanescentes estão em devDependencies (Jest, ferramentas de build) que não compõem a imagem de produção |
 | A07 — Identification and Authentication Failures | ✅ Aplicado | JWT com expiração configurável + mensagens de erro genéricas no login |
 | A08 — Software and Data Integrity Failures | ➖ Não aplicável | Fora do escopo (não há pipeline de CI/CD ou atualizações automáticas) |
 | A09 — Security Logging and Monitoring Failures | ✅ Aplicado | Logging de requisições via `morgan` |
 | A10 — Server-Side Request Forgery (SSRF) | ➖ Não aplicável | A aplicação não realiza requisições a URLs fornecidas pelo usuário |
+
+### Auditoria de Dependências
+
+```bash
+npm audit
+npm audit fix
+```
 
 ---
 

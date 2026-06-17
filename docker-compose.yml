@@ -26,6 +26,17 @@ services:
     networks:
       - api_net
 
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - api_net
+
   test:
     build:
       context: .
