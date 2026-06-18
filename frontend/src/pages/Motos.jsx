@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motoService } from '../services/nosqlService';
 import { useCrud } from '../services/useCrud';
+import { useToast } from '../context/ToastContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Modal from '../components/Modal';
@@ -10,6 +11,7 @@ import Spinner from '../components/Spinner';
 const initialForm = { marca: '', modelo: '', ano: '', cilindradas: '', cor: '' };
 
 export default function Motos() {
+  const toast = useToast();
   const { items, loading, criar, atualizar, remover } = useCrud(motoService, { entityName: 'moto' });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -42,13 +44,25 @@ export default function Motos() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (!form.marca.trim()) return toast.error('Marca é obrigatória.');
+    if (!form.modelo.trim()) return toast.error('Modelo é obrigatório.');
+    if (!form.ano) return toast.error('Ano é obrigatório.');
+    if (!form.cilindradas) return toast.error('Cilindradas são obrigatórias.');
+
+    const ano = Number(form.ano);
+    const anoAtual = new Date().getFullYear();
+    if (ano < 1886 || ano > anoAtual + 1) {
+      return toast.error(`Ano inválido. Use um valor entre 1886 e ${anoAtual + 1}.`);
+    }
+
     setSaving(true);
     const payload = {
-      marca: form.marca,
-      modelo: form.modelo,
-      ano: Number(form.ano),
+      marca: form.marca.trim(),
+      modelo: form.modelo.trim(),
+      ano,
       cilindradas: Number(form.cilindradas),
-      cor: form.cor,
+      cor: form.cor.trim(),
     };
     const ok = editingId
       ? await atualizar(editingId, payload)
@@ -117,11 +131,11 @@ export default function Motos() {
         onClose={() => setModalOpen(false)}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input label="Marca" name="marca" value={form.marca} onChange={handleChange} required />
-          <Input label="Modelo" name="modelo" value={form.modelo} onChange={handleChange} required />
+          <Input label="Marca" name="marca" value={form.marca} onChange={handleChange} />
+          <Input label="Modelo" name="modelo" value={form.modelo} onChange={handleChange} />
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Ano" name="ano" type="number" value={form.ano} onChange={handleChange} required />
-            <Input label="Cilindradas" name="cilindradas" type="number" value={form.cilindradas} onChange={handleChange} required />
+            <Input label="Ano" name="ano" type="number" value={form.ano} onChange={handleChange} />
+            <Input label="Cilindradas" name="cilindradas" type="number" value={form.cilindradas} onChange={handleChange} />
           </div>
           <Input label="Cor" name="cor" value={form.cor} onChange={handleChange} />
           <div className="flex justify-end gap-2 mt-2">

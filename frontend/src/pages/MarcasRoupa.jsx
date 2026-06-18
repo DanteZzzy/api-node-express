@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { marcaRoupaService } from '../services/nosqlService';
 import { useCrud } from '../services/useCrud';
+import { useToast } from '../context/ToastContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Modal from '../components/Modal';
@@ -10,6 +11,7 @@ import Spinner from '../components/Spinner';
 const initialForm = { nome: '', pais_origem: '', segmento: '', ano_fundacao: '' };
 
 export default function MarcasRoupa() {
+  const toast = useToast();
   const { items, loading, criar, atualizar, remover } = useCrud(marcaRoupaService, { entityName: 'marca de roupa' });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,11 +43,23 @@ export default function MarcasRoupa() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (!form.nome.trim()) return toast.error('Nome é obrigatório.');
+    if (!form.pais_origem.trim()) return toast.error('País de origem é obrigatório.');
+
+    if (form.ano_fundacao) {
+      const ano = Number(form.ano_fundacao);
+      const anoAtual = new Date().getFullYear();
+      if (ano < 1800 || ano > anoAtual) {
+        return toast.error(`Ano de fundação inválido. Use um valor entre 1800 e ${anoAtual}.`);
+      }
+    }
+
     setSaving(true);
     const payload = {
-      nome: form.nome,
-      pais_origem: form.pais_origem,
-      segmento: form.segmento,
+      nome: form.nome.trim(),
+      pais_origem: form.pais_origem.trim(),
+      segmento: form.segmento.trim(),
       ano_fundacao: form.ano_fundacao === '' ? undefined : Number(form.ano_fundacao),
     };
     const ok = editingId
@@ -113,8 +127,8 @@ export default function MarcasRoupa() {
         onClose={() => setModalOpen(false)}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input label="Nome" name="nome" value={form.nome} onChange={handleChange} required />
-          <Input label="País de Origem" name="pais_origem" value={form.pais_origem} onChange={handleChange} required />
+          <Input label="Nome" name="nome" value={form.nome} onChange={handleChange} />
+          <Input label="País de Origem" name="pais_origem" value={form.pais_origem} onChange={handleChange} />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Segmento" name="segmento" value={form.segmento} onChange={handleChange} />
             <Input label="Ano de Fundação" name="ano_fundacao" type="number" value={form.ano_fundacao} onChange={handleChange} />

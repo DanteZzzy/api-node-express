@@ -143,6 +143,8 @@ Isso sobe três containers de uma vez:
 | API | http://localhost:3000 |
 | Documentação Swagger | http://localhost:3000/docs |
 
+> O frontend se comunica com a API através da variável de ambiente `VITE_API_URL` (injetada em tempo de build pelo Vite). As requisições saem diretamente do navegador do usuário para `http://localhost:3000`, usando o token JWT armazenado no `localStorage`.
+
 ### Passo 5 — Primeiros passos na interface
 
 1. Acesse `http://localhost`
