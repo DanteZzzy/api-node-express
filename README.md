@@ -12,11 +12,11 @@ O diferencial técnico do projeto é o modelo de **Persistência Híbrida**: os 
 
 Para os recursos NoSQL (carros, motos e marcas de roupa), a arquitetura conta ainda com as camadas de **Repository** e **Service**: o `baseRepository.js` encapsula o acesso direto ao Mongoose (create, find, update, delete), enquanto o `baseService.js` concentra regras de negócio reutilizáveis — como impedir o cadastro de um veículo ou marca com ano de fabricação/fundação no futuro. Um único `BaseService` configurável (via parâmetros `yearField`, `maxYearOffset` e `entityName`) é reaproveitado pelos três recursos, evitando duplicação de código.
 
-A segurança foi modelada com base na **OWASP Top 10 (2021)**. Para mitigar falhas de autenticação (A07), implementou-se controle de sessão *stateless* via **JWT**, com senhas protegidas por **bcrypt** (fator de custo 12). A proteção contra quebra de controle de acesso (A01) ocorre por meio de middlewares que validam token e papel do usuário (`user`/`admin`). Para mitigar falhas criptográficas (A02), nenhuma senha é armazenada em texto puro. Contra configurações inseguras (A05), a biblioteca **Helmet** sanitiza cabeçalhos HTTP, e o **express-rate-limit** mitiga ataques de força bruta e DoS (A04). Os logs de requisições são registrados via **morgan** (A09), apoiando auditoria e monitoramento.
+A segurança foi modelada com base na **OWASP Top 10 (2021)**. Para mitigar falhas de autenticação (A07), implementou-se controle de sessão *stateless* via **JWT**, com senhas protegidas por **bcrypt** (fator de custo 12). A proteção contra quebra de controle de acesso (A01) ocorre por meio de middlewares que validam token e papel do usuário (`user`/`admin`) — operações de escrita (criar, atualizar, excluir) em carros, motos e marcas de roupa são restritas a usuários `admin`, enquanto a leitura permanece liberada para qualquer usuário autenticado. Para mitigar falhas criptográficas (A02), nenhuma senha é armazenada em texto puro. Contra configurações inseguras (A05), a biblioteca **Helmet** sanitiza cabeçalhos HTTP, e o **express-rate-limit** mitiga ataques de força bruta e DoS (A04). Os logs de requisições são registrados via **morgan** (A09), apoiando auditoria e monitoramento.
 
 A resiliência da aplicação é validada por **testes de integração automatizados** com **Jest** e **Supertest**, cobrindo autenticação, autorização e todos os CRUDs (carros, motos, marcas de roupa e usuários), com bancos de dados isolados para testes. Os testes podem ser executados tanto localmente quanto em um container Docker dedicado, sem necessidade de instalar Node.js ou MongoDB na máquina host.
 
-O frontend foi desenvolvido com **React 18** e **Vite**, estilizado com **Tailwind CSS v4**, e servido em produção pelo **Nginx**. A interface permite login, registro, navegação entre recursos, operações completas de CRUD e controle de acesso baseado no papel do usuário (admin/user), com mensagens de sucesso e erro em tempo real.
+O frontend foi desenvolvido com **React 18** e **Vite**, estilizado com **Tailwind CSS v4**, e servido em produção pelo **Nginx**. A interface permite login, registro, navegação entre recursos, operações completas de CRUD e controle de acesso baseado no papel do usuário (admin/user) — usuários comuns têm acesso somente leitura aos catálogos, refletindo na interface (botões ocultos) a mesma regra de autorização aplicada no backend —, com mensagens de sucesso e erro em tempo real.
 
 Toda a infraestrutura foi conteinerizada com **Docker** e **Docker Compose**, orquestrando o MongoDB, a API e o frontend em containers separados, com variáveis de ambiente centralizadas em `.env`, permitindo que a aplicação completa seja executada com um único comando — sem dependências instaladas na máquina host além do Docker.
 
@@ -148,7 +148,7 @@ Isso sobe três containers de uma vez:
 ### Passo 5 — Primeiros passos na interface
 
 1. Acesse `http://localhost`
-2. Clique em **Cadastre-se** para criar uma conta (escolha o perfil **Administrador** para ter acesso completo)
+2. Clique em **Cadastre-se** para criar uma conta (escolha o perfil **Administrador** para ter acesso completo de gerenciamento, ou **Usuário** para acesso somente leitura aos catálogos)
 3. Faça login com as credenciais cadastradas
 4. Use o menu de navegação para acessar Carros, Motos, Marcas de Roupa e Usuários
 
@@ -187,15 +187,17 @@ Isso sobe três containers de uma vez:
 
 ### Carros, Motos e Marcas de Roupa (protegido — JWT)
 
-| Método | Rota |
-|---|---|
-| GET | `/carros` |
-| GET | `/carros/:id` |
-| POST | `/carros` |
-| PUT | `/carros/:id` |
-| DELETE | `/carros/:id` |
+| Método | Rota | Permissão |
+|---|---|---|
+| GET | `/carros` | Usuário autenticado |
+| GET | `/carros/:id` | Usuário autenticado |
+| POST | `/carros` | Apenas `admin` |
+| PUT | `/carros/:id` | Apenas `admin` |
+| DELETE | `/carros/:id` | Apenas `admin` |
 
-*(mesma estrutura para `/motos` e `/marcas-roupa`)*
+*(mesma estrutura de permissões para `/motos` e `/marcas-roupa`)*
+
+> **Regra de autorização:** usuários com role `user` podem visualizar (listar e buscar) carros, motos e marcas de roupa, mas não podem criar, editar ou excluir — essas operações exigem role `admin`. Uma tentativa de escrita por um usuário comum retorna `403 Forbidden`. No frontend, essa regra é refletida ocultando os botões de criar/editar/excluir para usuários sem permissão.
 
 > **Regra de negócio (camada Service):** o campo de ano (`ano` para carros/motos, `ano_fundacao` para marcas de roupa) não pode ser maior que o ano atual (+1 para carros/motos). Criar ou atualizar um registro com ano inválido retorna `400 Bad Request`.
 
@@ -215,7 +217,7 @@ Isso sobe três containers de uma vez:
 
 ### 7.2 — Via Thunder Client (extensão do VS Code)
 
-#### Passo 1 — Criar um usuário
+#### Passo 1 — Criar um usuário admin
 
 - Método: `POST`
 - URL: `http://localhost:3000/auth/registro`
@@ -252,7 +254,7 @@ Em qualquer requisição protegida:
 
 > Se o token expirar (padrão: 1h), a API retorna `{ "erro": "Token inválido ou expirado." }`. Basta repetir o Passo 2 para obter um novo token.
 
-#### Passo 4 — Criar um carro
+#### Passo 4 — Criar um carro (com token de admin)
 
 - Método: `POST`
 - URL: `http://localhost:3000/carros`
@@ -342,7 +344,7 @@ Resposta esperada: `401 Unauthorized`
 
 - Método: `POST`
 - URL: `http://localhost:3000/carros`
-- Aba **Auth:** Bearer Token
+- Aba **Auth:** Bearer Token (de um usuário `admin`)
 - Aba **Body** → JSON:
 ```json
 {
@@ -355,11 +357,19 @@ Resposta esperada: `401 Unauthorized`
 ```
 Resposta esperada: `400 Bad Request`
 
+#### Passo 13 — Testar a restrição de escrita para usuário comum
+
+1. Registre um usuário com `"role": "user"`
+2. Faça login com ele e copie o token
+3. Tente criar um carro (`POST /carros`) usando esse token
+
+Resposta esperada: `403 Forbidden` — confirma que apenas `admin` pode criar/editar/excluir carros, motos e marcas de roupa.
+
 ---
 
 ## 8. Testes Automatizados (Jest + Supertest)
 
-Os testes de integração cobrem todos os endpoints da aplicação: autenticação, CRUD de usuários, carros, motos e marcas de roupa, incluindo casos de sucesso, erro, validação e proteção de rotas (32 testes no total).
+Os testes de integração cobrem todos os endpoints da aplicação: autenticação, CRUD de usuários, carros, motos e marcas de roupa, incluindo casos de sucesso, erro, validação, autorização por papel e proteção de rotas (32 testes no total).
 
 ### Rodando via Docker (recomendado)
 
@@ -373,7 +383,6 @@ docker compose run --rm test
 Saída esperada:
 ```bash
 Test Suites: 2 passed, 2 total
-
 Tests:       32 passed, 32 total
 ```
 
@@ -392,7 +401,7 @@ npm test
 
 | Item OWASP | Status | Como foi tratado |
 |---|---|---|
-| A01 — Broken Access Control | ✅ Aplicado | Middleware `autenticar` + `autorizar` com roles `user`/`admin` |
+| A01 — Broken Access Control | ✅ Aplicado | Middleware `autenticar` + `autorizar` com roles `user`/`admin`; escrita em carros/motos/marcas restrita a `admin`, leitura liberada para qualquer autenticado |
 | A02 — Cryptographic Failures | ✅ Aplicado | Senhas com bcrypt (fator de custo 12), nunca em texto puro |
 | A03 — Injection | ✅ Aplicado | Uso de ORMs (Sequelize/Mongoose), que parametrizam consultas automaticamente |
 | A04 — Insecure Design | ✅ Aplicado | Rate limiting (100 req / 15 min por IP) + validação de regras de negócio na camada de Service |
