@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { carroService } from '../services/nosqlService';
 import { useCrud } from '../services/useCrud';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Modal from '../components/Modal';
@@ -12,6 +13,7 @@ const initialForm = { marca: '', modelo: '', ano: '', cor: '', preco: '' };
 
 export default function Carros() {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const { items, loading, criar, atualizar, remover } = useCrud(carroService, { entityName: 'carro' });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -80,7 +82,7 @@ export default function Carros() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Carros</h1>
-        <Button onClick={openCreate}>+ Novo Carro</Button>
+        {isAdmin && <Button onClick={openCreate}>+ Novo Carro</Button>}
       </div>
 
       {loading ? (
@@ -113,14 +115,18 @@ export default function Carros() {
                       : '-'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="secondary" onClick={() => openEdit(item)}>
-                        Editar
-                      </Button>
-                      <Button variant="danger" onClick={() => setDeleteId(item._id)}>
-                        Excluir
-                      </Button>
-                    </div>
+                    {isAdmin ? (
+                      <div className="flex justify-end gap-2">
+                        <Button variant="secondary" onClick={() => openEdit(item)}>
+                          Editar
+                        </Button>
+                        <Button variant="danger" onClick={() => setDeleteId(item._id)}>
+                          Excluir
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">Somente leitura</span>
+                    )}
                   </td>
                 </tr>
               ))}

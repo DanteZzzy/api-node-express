@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { criarCrudController } = require('../controllers/nosqlController');
-const { autenticar } = require('../middlewares/auth');
 const { Carro } = require('../models/nosqlModels');
+const { autenticar, autorizar } = require('../middlewares/auth');
 const BaseRepository = require('../repositories/baseRepository');
 const BaseService = require('../services/baseService');
 
@@ -12,6 +12,7 @@ const service = new BaseService(repository, {
   entityName: 'carro',
 });
 const ctrl = criarCrudController(service);
+
 /**
  * @swagger
  * tags:
@@ -27,8 +28,10 @@ const ctrl = criarCrudController(service);
  *     tags: [Carros]
  *     security: [{ bearerAuth: [] }]
  *     responses:
- *       200: { description: Lista de carros }
- *       401: { description: Não autenticado }
+ *       200:
+ *         description: Lista de carros
+ *       401:
+ *         description: Não autenticado
  */
 router.get('/', autenticar, ctrl.listar);
 
@@ -44,9 +47,12 @@ router.get('/', autenticar, ctrl.listar);
  *         name: id
  *         required: true
  *         schema: { type: string }
+ *         description: ID do MongoDB
  *     responses:
- *       200: { description: Carro encontrado }
- *       404: { description: Não encontrado }
+ *       200:
+ *         description: Carro encontrado
+ *       404:
+ *         description: Não encontrado
  */
 router.get('/:id', autenticar, ctrl.buscar);
 
@@ -54,7 +60,7 @@ router.get('/:id', autenticar, ctrl.buscar);
  * @swagger
  * /carros:
  *   post:
- *     summary: Cria um novo carro
+ *     summary: Cria um novo carro (apenas admin)
  *     tags: [Carros]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -71,16 +77,20 @@ router.get('/:id', autenticar, ctrl.buscar);
  *               cor:    { type: string, example: "Prata" }
  *               preco:  { type: number, example: 120000 }
  *     responses:
- *       201: { description: Carro criado }
- *       400: { description: Dados inválidos }
+ *       201:
+ *         description: Carro criado
+ *       400:
+ *         description: Dados inválidos
+ *       403:
+ *         description: Acesso negado (apenas admin)
  */
-router.post('/', autenticar, ctrl.criar);
+router.post('/', autenticar, autorizar('admin'), ctrl.criar);
 
 /**
  * @swagger
  * /carros/{id}:
  *   put:
- *     summary: Atualiza um carro
+ *     summary: Atualiza um carro (apenas admin)
  *     tags: [Carros]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -100,16 +110,20 @@ router.post('/', autenticar, ctrl.criar);
  *               cor:    { type: string }
  *               preco:  { type: number }
  *     responses:
- *       200: { description: Carro atualizado }
- *       404: { description: Não encontrado }
+ *       200:
+ *         description: Carro atualizado
+ *       403:
+ *         description: Acesso negado (apenas admin)
+ *       404:
+ *         description: Não encontrado
  */
-router.put('/:id', autenticar, ctrl.atualizar);
+router.put('/:id', autenticar, autorizar('admin'), ctrl.atualizar);
 
 /**
  * @swagger
  * /carros/{id}:
  *   delete:
- *     summary: Remove um carro
+ *     summary: Remove um carro (apenas admin)
  *     tags: [Carros]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -118,9 +132,13 @@ router.put('/:id', autenticar, ctrl.atualizar);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       204: { description: Removido com sucesso }
- *       404: { description: Não encontrado }
+ *       204:
+ *         description: Removido com sucesso
+ *       403:
+ *         description: Acesso negado (apenas admin)
+ *       404:
+ *         description: Não encontrado
  */
-router.delete('/:id', autenticar, ctrl.deletar);
+router.delete('/:id', autenticar, autorizar('admin'), ctrl.deletar);
 
 module.exports = router;

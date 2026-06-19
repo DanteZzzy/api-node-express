@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { criarCrudController } = require('../controllers/nosqlController');
-const { autenticar } = require('../middlewares/auth');
 const { Moto } = require('../models/nosqlModels');
+const { autenticar, autorizar } = require('../middlewares/auth');
 const BaseRepository = require('../repositories/baseRepository');
 const BaseService = require('../services/baseService');
 
@@ -28,8 +28,10 @@ const ctrl = criarCrudController(service);
  *     tags: [Motos]
  *     security: [{ bearerAuth: [] }]
  *     responses:
- *       200: { description: Lista de motos }
- *       401: { description: Não autenticado }
+ *       200:
+ *         description: Lista de motos
+ *       401:
+ *         description: Não autenticado
  */
 router.get('/', autenticar, ctrl.listar);
 
@@ -46,8 +48,10 @@ router.get('/', autenticar, ctrl.listar);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       200: { description: Moto encontrada }
- *       404: { description: Não encontrada }
+ *       200:
+ *         description: Moto encontrada
+ *       404:
+ *         description: Não encontrada
  */
 router.get('/:id', autenticar, ctrl.buscar);
 
@@ -55,7 +59,7 @@ router.get('/:id', autenticar, ctrl.buscar);
  * @swagger
  * /motos:
  *   post:
- *     summary: Cria uma nova moto
+ *     summary: Cria uma nova moto (apenas admin)
  *     tags: [Motos]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -72,16 +76,20 @@ router.get('/:id', autenticar, ctrl.buscar);
  *               cilindradas: { type: integer, example: 500 }
  *               cor:         { type: string, example: "Vermelha" }
  *     responses:
- *       201: { description: Moto criada }
- *       400: { description: Dados inválidos }
+ *       201:
+ *         description: Moto criada
+ *       400:
+ *         description: Dados inválidos
+ *       403:
+ *         description: Acesso negado (apenas admin)
  */
-router.post('/', autenticar, ctrl.criar);
+router.post('/', autenticar, autorizar('admin'), ctrl.criar);
 
 /**
  * @swagger
  * /motos/{id}:
  *   put:
- *     summary: Atualiza uma moto
+ *     summary: Atualiza uma moto (apenas admin)
  *     tags: [Motos]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -101,16 +109,20 @@ router.post('/', autenticar, ctrl.criar);
  *               cilindradas: { type: integer }
  *               cor:         { type: string }
  *     responses:
- *       200: { description: Moto atualizada }
- *       404: { description: Não encontrada }
+ *       200:
+ *         description: Moto atualizada
+ *       403:
+ *         description: Acesso negado (apenas admin)
+ *       404:
+ *         description: Não encontrada
  */
-router.put('/:id', autenticar, ctrl.atualizar);
+router.put('/:id', autenticar, autorizar('admin'), ctrl.atualizar);
 
 /**
  * @swagger
  * /motos/{id}:
  *   delete:
- *     summary: Remove uma moto
+ *     summary: Remove uma moto (apenas admin)
  *     tags: [Motos]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -119,9 +131,13 @@ router.put('/:id', autenticar, ctrl.atualizar);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       204: { description: Removida com sucesso }
- *       404: { description: Não encontrada }
+ *       204:
+ *         description: Removida com sucesso
+ *       403:
+ *         description: Acesso negado (apenas admin)
+ *       404:
+ *         description: Não encontrada
  */
-router.delete('/:id', autenticar, ctrl.deletar);
+router.delete('/:id', autenticar, autorizar('admin'), ctrl.deletar);
 
 module.exports = router;

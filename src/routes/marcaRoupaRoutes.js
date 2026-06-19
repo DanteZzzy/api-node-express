@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { criarCrudController } = require('../controllers/nosqlController');
-const { autenticar } = require('../middlewares/auth');
 const { MarcaRoupa } = require('../models/nosqlModels');
+const { autenticar, autorizar } = require('../middlewares/auth');
 const BaseRepository = require('../repositories/baseRepository');
 const BaseService = require('../services/baseService');
 
@@ -28,8 +28,10 @@ const ctrl = criarCrudController(service);
  *     tags: [Marcas de Roupa]
  *     security: [{ bearerAuth: [] }]
  *     responses:
- *       200: { description: Lista de marcas }
- *       401: { description: Não autenticado }
+ *       200:
+ *         description: Lista de marcas
+ *       401:
+ *         description: Não autenticado
  */
 router.get('/', autenticar, ctrl.listar);
 
@@ -46,8 +48,10 @@ router.get('/', autenticar, ctrl.listar);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       200: { description: Marca encontrada }
- *       404: { description: Não encontrada }
+ *       200:
+ *         description: Marca encontrada
+ *       404:
+ *         description: Não encontrada
  */
 router.get('/:id', autenticar, ctrl.buscar);
 
@@ -55,7 +59,7 @@ router.get('/:id', autenticar, ctrl.buscar);
  * @swagger
  * /marcas-roupa:
  *   post:
- *     summary: Cria uma nova marca de roupa
+ *     summary: Cria uma nova marca de roupa (apenas admin)
  *     tags: [Marcas de Roupa]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -71,16 +75,20 @@ router.get('/:id', autenticar, ctrl.buscar);
  *               segmento:     { type: string, example: "Esportivo" }
  *               ano_fundacao: { type: integer, example: 1964 }
  *     responses:
- *       201: { description: Marca criada }
- *       400: { description: Dados inválidos }
+ *       201:
+ *         description: Marca criada
+ *       400:
+ *         description: Dados inválidos
+ *       403:
+ *         description: Acesso negado (apenas admin)
  */
-router.post('/', autenticar, ctrl.criar);
+router.post('/', autenticar, autorizar('admin'), ctrl.criar);
 
 /**
  * @swagger
  * /marcas-roupa/{id}:
  *   put:
- *     summary: Atualiza uma marca de roupa
+ *     summary: Atualiza uma marca de roupa (apenas admin)
  *     tags: [Marcas de Roupa]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -99,16 +107,20 @@ router.post('/', autenticar, ctrl.criar);
  *               segmento:     { type: string }
  *               ano_fundacao: { type: integer }
  *     responses:
- *       200: { description: Marca atualizada }
- *       404: { description: Não encontrada }
+ *       200:
+ *         description: Marca atualizada
+ *       403:
+ *         description: Acesso negado (apenas admin)
+ *       404:
+ *         description: Não encontrada
  */
-router.put('/:id', autenticar, ctrl.atualizar);
+router.put('/:id', autenticar, autorizar('admin'), ctrl.atualizar);
 
 /**
  * @swagger
  * /marcas-roupa/{id}:
  *   delete:
- *     summary: Remove uma marca de roupa
+ *     summary: Remove uma marca de roupa (apenas admin)
  *     tags: [Marcas de Roupa]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -117,9 +129,13 @@ router.put('/:id', autenticar, ctrl.atualizar);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       204: { description: Removida com sucesso }
- *       404: { description: Não encontrada }
+ *       204:
+ *         description: Removida com sucesso
+ *       403:
+ *         description: Acesso negado (apenas admin)
+ *       404:
+ *         description: Não encontrada
  */
-router.delete('/:id', autenticar, ctrl.deletar);
+router.delete('/:id', autenticar, autorizar('admin'), ctrl.deletar);
 
 module.exports = router;
